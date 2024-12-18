@@ -1,0 +1,1 @@
+export const predefinedFrequencies = ['Once a day', 'Every day', '2 times a day', '3 times a day', 'Custom'];

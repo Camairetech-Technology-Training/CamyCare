@@ -1,0 +1,1 @@
+export const predefinedDosages = ['1 Capsule', '1 Drip', '2 Tablets', '5 ml Syrup', 'Custom'];
