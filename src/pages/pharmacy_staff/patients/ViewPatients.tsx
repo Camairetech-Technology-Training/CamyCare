@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PrescriptionList from './PatientPrescriptions';
-import { fetchPatients } from '../../../services/patientService'
-import { Patient } from '../../../models/patient'
+import { fetchPatients, addPatient } from '../../../services/patientService'; // Import addPatient service
+import { Patient } from '../../../models/patient';
 
 export interface Prescription {
   id: number;
@@ -27,13 +27,13 @@ const ViewPatients = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPatientName, setNewPatientName] = useState('');
   const [newPatientPhone, setNewPatientPhone] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Fetch patients from API on component mount
   useEffect(() => {
     const getPatients = async () => {
       try {
         const data = await fetchPatients();
-        console.log(data)
         setPatients(data);
       } catch (error) {
         console.error('Failed to load patients');
@@ -60,18 +60,35 @@ const ViewPatients = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  const handleAddPatient = () => {
+  const handleAddPatient = async () => {
     if (newPatientName && newPatientPhone) {
-      const newPatient: Patient = {
-        id: patients.length + 1, // Auto increment id for new patient
-        fullName: newPatientName,
-        phoneNumber: newPatientPhone,
-        // registrationDate: new Date(),
-      };
-      setPatients([...patients, newPatient]);
-      setIsModalOpen(false);
-      setNewPatientName('');
-      setNewPatientPhone('');
+      const phoneRegex = /^\d{9}$/;
+      if (!phoneRegex.test(newPatientPhone)) {
+        alert('Please enter a valid 9-digit phone number without spaces.');
+        return;
+      }
+
+      try {
+        const formattedPhone = `+237 ${newPatientPhone}`;
+
+        const response = await addPatient(newPatientName, formattedPhone);
+
+        const newPatient: Patient = {
+          id: response.id,
+          fullName: newPatientName,
+          phoneNumber: formattedPhone,
+        };
+
+        setPatients([newPatient, ...patients]);
+        setIsModalOpen(false);
+        setNewPatientName('');
+        setNewPatientPhone('');
+        setSuccessMessage('Patient added successfully!');
+
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (error) {
+        console.error('Failed to add new patient', error);
+      }
     }
   };
 
@@ -86,6 +103,13 @@ const ViewPatients = () => {
           Add New Patient
         </button>
       </div>
+
+      {/* Display success message */}
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-200 text-green-700 rounded-md">
+          {successMessage}
+        </div>
+      )}
 
       <input
         type="text"
@@ -137,7 +161,6 @@ const ViewPatients = () => {
             <tr className="bg-gray-200 text-left">
               <th className="min-w-[220px] py-4 px-4">Patient Name</th>
               <th className="min-w-[150px] py-4 px-4">Phone Number</th>
-              {/* <th className="min-w-[150px] py-4 px-4">Registration Date</th> */}
               <th className="py-4 px-4">Actions</th>
             </tr>
           </thead>
@@ -147,7 +170,6 @@ const ViewPatients = () => {
                 <tr>
                   <td className="border-b py-5 px-4">{patient.fullName}</td>
                   <td className="border-b py-5 px-4">{patient.phoneNumber}</td>
-                  {/* <td className="border-b py-5 px-4">{new Date(patient.registrationDate).toLocaleDateString()}</td> */}
                   <td className="border-b py-5 px-4">
                     <button
                       onClick={() => togglePrescriptions(patient.id)}
