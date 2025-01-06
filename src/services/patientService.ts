@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const GET_PATIENT_URL = `${BASE_URL}${ENDPOINTS.GET_PATIENTS}`
 const ADD_PATIENT_URL = `${BASE_URL}${ENDPOINTS.ADD_PATIENT}`;
-// Fetch patients from the API
+
 export const fetchPatients = async (): Promise<Patient[]> => {
   try {
     const response = await apiCall<null, Patient[]>({

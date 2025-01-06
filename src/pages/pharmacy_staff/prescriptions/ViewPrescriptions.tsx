@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { prescriptionsData } from '../../../data/prescriptionsData';
-import { filterPrescriptions } from '../../../utils/filters';
-import { usePagination } from '../../../hooks/usePagination';
+import { Prescription } from '../../../models/pescription';
 import PrescriptionTable from '../../../components/Prescriptions/PrescriptionTable/PrescriptionTable';
 import PaginationControls from '../../../components/Prescriptions/PaginationControls/PaginationControls';
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
-
-import { addPrescription } from '../../../services/prescriptionService';
-import { Prescription } from '../../../types/prescription';
+// import { filterPrescriptions } from '../../../utils/filters';
+import { usePagination } from '../../../hooks/usePagination';
 
 const ViewPrescriptions: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,17 +13,35 @@ const ViewPrescriptions: React.FC = () => {
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const prescriptionsData: Prescription[] = [
+    // Your prescription data here (replace this with real data)
+    {
+      drug: "Aspirin",
+      dosage: "500mg",
+      frequency: 2,
+      typeFrequency: 1, // 1 could mean daily, 2 might mean weekly, etc.
+      duration: 7,
+      plages: ["Morning", "Evening"],
+      patientId: "12345",
+    },
+    // Add more prescriptions as needed
+  ];
+
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
 
-  const filteredPrescriptions = filterPrescriptions(
-    prescriptionsData,
-    searchQuery,
-    statusFilter,
-    phoneNumberFilter
-  );
+  /*TO BE UPGRATED WHEN THE GET PRESCRIPTION IS OPERATIONAL*/
+  // const filteredPrescriptions = filterPrescriptions(
+  //   prescriptionsData,
+  //   searchQuery,
+  //   statusFilter,
+  //   phoneNumberFilter
+  // );
 
-  const currentPrescriptions = filteredPrescriptions.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPrescriptions.length / 5);
+  // const currentPrescriptions = filteredPrescriptions.slice(indexOfFirstItem, indexOfLastItem);
+  // const totalPages = Math.ceil(filteredPrescriptions.length / 5);
+
+  const currentPrescriptions = prescriptionsData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(prescriptionsData.length / 5);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -38,11 +53,6 @@ const ViewPrescriptions: React.FC = () => {
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumberFilter(e.target.value);
-  };
-
-  const handleAddPrescription = (newPrescription: Prescription) => {
-    addPrescription(newPrescription);
-    setIsModalOpen(false);
   };
 
   return (
@@ -85,7 +95,7 @@ const ViewPrescriptions: React.FC = () => {
             </div>
 
             {/* AddPrescription Component */}
-            <AddPrescription addPrescription={handleAddPrescription} closeModal={() => setIsModalOpen(false)} />
+            <AddPrescription closeModal={() => setIsModalOpen(false)} />
 
             {/* Footer */}
             <div className="mt-6 flex justify-end">
@@ -98,7 +108,6 @@ const ViewPrescriptions: React.FC = () => {
             </div>
           </div>
         </div>
-
       )}
     </div>
   );
