@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PrescriptionList from './PatientPrescriptions';
-
-// Define the Patient interface
-export interface Patient {
-  id: number;
-  name: string;
-  phoneNumber: string;
-  registrationDate: Date;
-}
+import { fetchPatients } from '../../../services/patientService'
+import { Patient } from '../../../models/patient'
 
 export interface Prescription {
   id: number;
@@ -18,21 +12,13 @@ export interface Prescription {
   phoneNumber: string;
 }
 
-const samplePatients: Patient[] = [
-  { id: 1, name: 'John Doe', phoneNumber: '123-456-7890', registrationDate: new Date('2023-01-01') },
-  { id: 2, name: 'Jane Smith', phoneNumber: '234-567-8901', registrationDate: new Date('2023-02-15') },
-  // ...other patients
-];
-
-// Sample data for prescriptions
 const samplePrescriptions: Prescription[] = [
   { id: 1, patientId: 1, drugs: ['Paracetamol', 'Amoxicillin'], status: 'Completed', creationDate: '2024-12-15', phoneNumber: '123-456-7890' },
   { id: 2, patientId: 2, drugs: ['Ibuprofen'], status: 'Pending', creationDate: '2024-12-14', phoneNumber: '234-567-8901' },
-  // ...other prescriptions
 ];
 
 const ViewPatients = () => {
-  const [patients, setPatients] = useState<Patient[]>(samplePatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [prescriptions] = useState<Prescription[]>(samplePrescriptions);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -42,10 +28,24 @@ const ViewPatients = () => {
   const [newPatientName, setNewPatientName] = useState('');
   const [newPatientPhone, setNewPatientPhone] = useState('');
 
+  // Fetch patients from API on component mount
+  useEffect(() => {
+    const getPatients = async () => {
+      try {
+        const data = await fetchPatients();
+        console.log(data)
+        setPatients(data);
+      } catch (error) {
+        console.error('Failed to load patients');
+      }
+    };
+    getPatients();
+  }, []);
+
   // Filter patients based on the search input
   const filteredPatients = patients.filter(
     (patient) =>
-      patient.name.toLowerCase().includes(search.toLowerCase()) ||
+      patient.fullName.toLowerCase().includes(search.toLowerCase()) ||
       patient.phoneNumber.includes(search)
   );
 
@@ -58,17 +58,15 @@ const ViewPatients = () => {
   const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
   const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
 
-  // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Handle form submission for new patient
   const handleAddPatient = () => {
     if (newPatientName && newPatientPhone) {
       const newPatient: Patient = {
         id: patients.length + 1, // Auto increment id for new patient
-        name: newPatientName,
+        fullName: newPatientName,
         phoneNumber: newPatientPhone,
-        registrationDate: new Date(),
+        // registrationDate: new Date(),
       };
       setPatients([...patients, newPatient]);
       setIsModalOpen(false);
@@ -78,8 +76,7 @@ const ViewPatients = () => {
   };
 
   return (
-    <div className="rounded-sm border border-stroke bg-white px-5 pt-6 pb-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
-
+    <div className="rounded-sm border border-stroke bg-white px-5 pt-6 pb-6 shadow-default">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-bold">View Patients</h1>
         <button
@@ -90,7 +87,6 @@ const ViewPatients = () => {
         </button>
       </div>
 
-      {/* Search Bar */}
       <input
         type="text"
         value={search}
@@ -99,7 +95,6 @@ const ViewPatients = () => {
         className="mb-4 px-4 py-2 border rounded-md w-1/3"
       />
 
-      {/* Modal for adding new patient */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
@@ -136,48 +131,39 @@ const ViewPatients = () => {
         </div>
       )}
 
-      {/* Patient List Table */}
       <div className="max-w-full overflow-x-auto">
         <table className="w-full table-auto">
           <thead>
-            <tr className="bg-gray-2 text-left dark:bg-meta-4">
-              <th className="min-w-[220px] py-4 px-4 font-medium text-black dark:text-white xl:pl-11">Patient Name</th>
-              <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">Phone Number</th>
-              <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">Registration Date</th>
-              <th className="py-4 px-4 font-medium text-black dark:text-white">Actions</th>
+            <tr className="bg-gray-200 text-left">
+              <th className="min-w-[220px] py-4 px-4">Patient Name</th>
+              <th className="min-w-[150px] py-4 px-4">Phone Number</th>
+              {/* <th className="min-w-[150px] py-4 px-4">Registration Date</th> */}
+              <th className="py-4 px-4">Actions</th>
             </tr>
           </thead>
           <tbody>
             {currentPatients.map((patient) => (
               <React.Fragment key={patient.id}>
                 <tr>
-                  <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                    <h5 className="font-medium text-black dark:text-white">{patient.name}</h5>
-                  </td>
-                  <td className="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{patient.phoneNumber}</p>
-                  </td>
-                  <td className="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{patient.registrationDate.toLocaleDateString()}</p>
-                  </td>
-                  <td className="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
+                  <td className="border-b py-5 px-4">{patient.fullName}</td>
+                  <td className="border-b py-5 px-4">{patient.phoneNumber}</td>
+                  {/* <td className="border-b py-5 px-4">{new Date(patient.registrationDate).toLocaleDateString()}</td> */}
+                  <td className="border-b py-5 px-4">
                     <button
                       onClick={() => togglePrescriptions(patient.id)}
                       className={`px-4 py-2 rounded-md ${
                         selectedPatientId === patient.id
-                          ? 'bg-red-500 text-white hover:bg-red-600'
-                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-blue-500 text-white'
                       }`}
                     >
                       {selectedPatientId === patient.id ? 'Hide Prescriptions' : 'View Prescriptions'}
                     </button>
                   </td>
                 </tr>
-
-                {/* Prescription List */}
                 {selectedPatientId === patient.id && (
                   <tr>
-                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11" colSpan={4}>
+                    <td colSpan={4} className="border-b py-5 px-4">
                       <PrescriptionList prescriptions={prescriptions} />
                     </td>
                   </tr>
