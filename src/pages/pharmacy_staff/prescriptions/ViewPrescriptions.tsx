@@ -1,47 +1,53 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Prescription } from '../../../models/pescription';
 import PrescriptionTable from '../../../components/Prescriptions/PrescriptionTable/PrescriptionTable';
 import PaginationControls from '../../../components/Prescriptions/PaginationControls/PaginationControls';
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
-// import { filterPrescriptions } from '../../../utils/filters';
 import { usePagination } from '../../../hooks/usePagination';
+import { fetchPrescriptions } from '../../../services/prescriptionService';
 
 const ViewPrescriptions: React.FC = () => {
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const prescriptionsData: Prescription[] = [
-    // Your prescription data here (replace this with real data)
-    {
-      drug: "Aspirin",
-      dosage: "500mg",
-      frequency: 2,
-      typeFrequency: 1, // 1 could mean daily, 2 might mean weekly, etc.
-      duration: 7,
-      plages: ["Morning", "Evening"],
-      patientId: "12345",
-    },
-    // Add more prescriptions as needed
-  ];
-
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
 
-  /*TO BE UPGRATED WHEN THE GET PRESCRIPTION IS OPERATIONAL*/
-  // const filteredPrescriptions = filterPrescriptions(
-  //   prescriptionsData,
-  //   searchQuery,
-  //   statusFilter,
-  //   phoneNumberFilter
-  // );
+  useEffect(() => {
+    const loadPrescriptions = async () => {
+      try {
+        const data = await fetchPrescriptions();
+        setPrescriptions(data);
+      } catch (error) {
+        console.error('Failed to fetch prescriptions:', error);
+      }
+    };
 
-  // const currentPrescriptions = filteredPrescriptions.slice(indexOfFirstItem, indexOfLastItem);
-  // const totalPages = Math.ceil(filteredPrescriptions.length / 5);
+    loadPrescriptions();
+  }, []);
 
-  const currentPrescriptions = prescriptionsData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(prescriptionsData.length / 5);
+  const filteredPrescriptions = prescriptions.filter((prescription) => {
+    const matchesSearch = prescription.patient?.fullName
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter
+      ? prescription.status === statusFilter
+      : true;
+    const matchesPhoneNumber = phoneNumberFilter
+      ? prescription.patient?.phoneNumber.includes(phoneNumberFilter)
+      : true;
+
+    return matchesSearch && matchesStatus && matchesPhoneNumber;
+  });
+
+  const currentPrescriptions = filteredPrescriptions.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredPrescriptions.length / 5);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -95,15 +101,16 @@ const ViewPrescriptions: React.FC = () => {
             </div>
 
             {/* AddPrescription Component */}
-            <AddPrescription closeModal={() => setIsModalOpen(false)} />
+            {/* <AddPrescription closeModal={() => setIsModalOpen(false)} /> */}
+            <AddPrescription />
 
             {/* Footer */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-black py-2 px-4 rounded-md mr-2"
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

@@ -1,4 +1,6 @@
 export interface Prescription {
+    patient?: any;
+    status?: string;
     drug: string;
     dosage: string;
     frequency: number;
