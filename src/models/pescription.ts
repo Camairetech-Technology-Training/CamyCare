@@ -1,4 +1,6 @@
 export interface Prescription {
+    id?: string;
+    reminders?: any;
     patient?: any;
     status?: string;
     drug: string;
