@@ -1,33 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Prescription } from '../../../models/pescription';
+import React, { useState } from 'react';
 import PrescriptionTable from '../../../components/Prescriptions/PrescriptionTable/PrescriptionTable';
 import PaginationControls from '../../../components/Prescriptions/PaginationControls/PaginationControls';
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
 import { usePagination } from '../../../hooks/usePagination';
-import { fetchPrescriptions } from '../../../services/prescriptionService';
+import usePrescriptions from '../../../hooks/usePrescriptions';
 
 const ViewPrescriptions: React.FC = () => {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const { prescriptions } = usePrescriptions();
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
-
-  useEffect(() => {
-    const loadPrescriptions = async () => {
-      try {
-        const data = await fetchPrescriptions();
-        setPrescriptions(data);
-      } catch (error) {
-        console.error('Failed to fetch prescriptions:', error);
-      }
-    };
-
-    loadPrescriptions();
-  }, []);
 
   const filteredPrescriptions = prescriptions.filter((prescription) => {
     const matchesSearch = prescription.patient?.fullName
@@ -101,8 +87,7 @@ const ViewPrescriptions: React.FC = () => {
             </div>
 
             {/* AddPrescription Component */}
-            {/* <AddPrescription closeModal={() => setIsModalOpen(false)} /> */}
-            <AddPrescription />
+            <AddPrescription/>
 
             {/* Footer */}
             <div className="mt-6 flex justify-end">
