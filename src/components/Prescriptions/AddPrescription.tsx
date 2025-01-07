@@ -1,45 +1,49 @@
-import React, { useState, useEffect } from "react";
-import { Prescription } from "../../models/pescription";
-import { Patient } from "../../models/patient";
-import { drugList } from "../../data/drugData";
+import React, { useState, useEffect } from 'react';
+import { savePrescription } from '../../services/prescriptionService';
 import { predefinedDosages } from "../../data/predifinedData";
 import { fetchPatients, addPatient } from "../../services/patientService";
-import { savePrescription } from '../../services/prescriptionService';
 
-interface AddPrescriptionProps {
-  closeModal: () => void;
-}
+import { Prescription } from "../../models/pescription";
+import { Patient } from "../../models/patient";
 
-const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [isNewPatient, setIsNewPatient] = useState(false);
-  const [isAddNewPatient, setIsAddNewPatient] = useState(false);
-  const [isRegisterNewButton, setIsRegisterNewButton] = useState(false);
-  const [newPatientName, setNewPatientName] = useState('');
-  const [prescription, setPrescription] = useState<Prescription>({
-    patientId: "",
-    drug: "",
-    dosage: "",
-    frequency: 0,
-    typeFrequency: 0, // Added typeFrequency to handle frequency type
-    duration: 0,
-    plages: [], // This is now an array of selected plages
-  });
+import { drugList } from "../../data/drugData";
+import { doseIntervals } from '../../data/doseIntervals';
+import { dosesPerDay } from '../../data/dosesPerDay';
 
-  useEffect(() => {
-    const getPatients = async () => {
-      try {
-        const data = await fetchPatients();
-        setPatients(data);
-      } catch (error) {
-        console.error('Failed to load patients');
-      }
-    };
-    getPatients();
-  }, []);
+const AddPrescription = () => {
+
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [isNewPatient, setIsNewPatient] = useState(false);
+    const [isAddNewPatient, setIsAddNewPatient] = useState(false);
+    const [isRegisterNewButton, setIsRegisterNewButton] = useState(false);
+    const [newPatientName, setNewPatientName] = useState('');
+    const [prescription, setPrescription] = useState<Prescription>({
+      patientId: "",
+      drug: "",
+      dosage: "",
+      frequency: 0,
+      typeFrequency: 0, // Added typeFrequency to handle frequency type
+      duration: 0,
+      plages: [], // This is now an array of selected plages
+    });
+
+  const [availablePlages, setAvailablePlages] = useState<string[][]>([]);
+  const [, setSelectedPlages] = useState<string[]>([]);
+
+    useEffect(() => {
+      const getPatients = async () => {
+        try {
+          const data = await fetchPatients();
+          setPatients(data);
+        } catch (error) {
+          console.error('Failed to load patients');
+        }
+      };
+      getPatients();
+    }, []);
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -75,6 +79,57 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
     setFilteredPatients([]);
   };
 
+  const handleFrequencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const frequency = parseInt(e.target.value, 10);
+    let plagesOptions: string[][] = [];
+  
+    if (frequency === 1) {
+      plagesOptions = [['MORNING'], ['MID_DAY'], ['NIGHT']];
+    } else if (frequency === 2) {
+      plagesOptions = [
+        ['MORNING', 'MID_DAY'],
+        ['MORNING', 'NIGHT'],
+        ['MID_DAY', 'NIGHT'],
+      ];
+    } else if (frequency === 3) {
+      plagesOptions = [['MORNING', 'MID_DAY', 'NIGHT']];
+    }
+  
+    setAvailablePlages(plagesOptions);
+    setSelectedPlages([]); // Reset selected plages
+    setPrescription((prevData) => ({
+      ...prevData,
+      frequency,
+      plages: [], // Reset plages
+    }));
+  };
+
+  const handlePlageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedPlages = e.target.value.split(','); // Split the comma-separated value to an array
+    setSelectedPlages(selectedPlages); // Store the selected plages as an array
+    setPrescription((prevData) => ({
+      ...prevData,
+      plages: selectedPlages, // Store selected plages in prescription object
+    }));
+  };
+  
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+  
+    if (e.target instanceof HTMLSelectElement) {
+      setPrescription((prevData) => ({
+        ...prevData,
+        [name]: parseInt(value, 10),
+      }));
+    } else {
+      setPrescription((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+  };
+
   const handlePrescriptionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setPrescription((prevState) => ({
@@ -83,26 +138,29 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
     }));
   };
 
-  const handleAddPrescription = async () => {
-    if (!selectedPatient) {
-      alert("Please select or register a patient before adding prescriptions.");
-      return;
-    }
-
-    const finalDosage = prescription.dosage === "Custom" ? prescription.dosage : prescription.dosage;
-    const newPrescription: Prescription = {
-      ...prescription,
-      dosage: finalDosage,
-    };
-
-    console.log(newPrescription)
-
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log(prescription)
     try {
-      await savePrescription(newPrescription);
+      const response = await savePrescription(prescription);
+      console.log('Prescription created:', response);
+      alert('Prescription added successfully!');
+      // Reset form
+      setPrescription({
+        drug: '',
+        dosage: '',
+        frequency: 0,
+        typeFrequency: 1,
+        duration: 1,
+        plages: [],
+        patientId: '0c5223f6-cb97-4e8e-ab7f-9521aa527e95',
+      });
+      setSelectedPlages([]);
+      setAvailablePlages([]);
     } catch (error) {
-      console.error('Error saving prescription:', error);
+      console.error('Error creating prescription:', error);
+      alert('Error adding prescription. Please try again.');
     }
-    closeModal();
   };
 
   const handleRegisterNewPatient = async () => {
@@ -135,47 +193,25 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
     }
   };
 
-  // Function to dynamically set available plages based on frequency
-  const getPlagesOptions = (frequency: number) => {
-    switch (frequency) {
-      case 1:
-        return ["MATIN", "MIDI", "SOIR"];
-      case 2:
-        return ["MATIN, MIDI", "MATIN, SOIR", "MIDI, SOIR"];
-      case 3:
-        return ["MATIN, MIDI, SOIR"];
-      default:
-        return [];
-    }
-  };
-
-  // Handle multiple plages selection
-  const handlePlagesChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedPlages = Array.from(e.target.selectedOptions, (option) => option.value);
-    setPrescription((prevState) => ({
-      ...prevState,
-      plages: selectedPlages,
-    }));
-  };
 
   return (
-    <div className="p-2">
+    <div className="p-4">
       {/* Phone Number Input */}
-      <div className="mb-4 relative max-w-md mx-auto">
-        <label className="block text-lg font-medium">Patient Phone Number</label>
+      <div className="mb-6 relative max-w-md mx-auto">
+        <label className="block text-lg font-medium text-gray-700">Patient Phone Number</label>
         <input
           type="text"
           value={phoneNumber}
           onChange={handlePhoneNumberChange}
-          className="mt-2 px-4 py-2 border rounded-lg w-full"
+          className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Enter phone number (e.g., 6XXXXXX)"
         />
         {filteredPatients.length > 0 && (
-          <ul className="absolute bg-white border rounded-lg mt-1 w-full max-w-sm mx-auto">
+          <ul className="absolute bg-white border border-gray-300 rounded-lg mt-1 w-full max-w-sm mx-auto shadow-md">
             {filteredPatients.map((patient) => (
               <li
                 key={patient.id}
-                className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => handleSelectPatient(patient)}
               >
                 {patient.fullName} ({patient.phoneNumber})
@@ -188,7 +224,7 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
             {isRegisterNewButton && (
               <button
                 onClick={() => [setIsAddNewPatient(true), setIsRegisterNewButton(false)]}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700"
               >
                 Register a New Patient
               </button>
@@ -200,11 +236,11 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
                   value={newPatientName}
                   onChange={(e) => setNewPatientName(e.target.value)}
                   placeholder="Enter patient name"
-                  className="px-4 py-2 border rounded-lg w-full"
+                  className="px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={handleRegisterNewPatient}
-                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
                 >
                   Register Patient
                 </button>
@@ -213,10 +249,10 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
           </div>
         )}
       </div>
-
+  
       {selectedPatient && (
         <>
-          <div className="mb-6 bg-white p-4 rounded-lg shadow-md max-w-sm mx-auto">
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-md max-w-sm mx-auto">
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Selected Patient:</h2>
             <div className="flex flex-col space-y-2">
               <p className="text-lg font-medium text-gray-700">
@@ -227,20 +263,17 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
               </p>
             </div>
           </div>
-
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Add Drugs</h2>
-
-            {/* Horizontal Flex Container for Form Fields */}
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              {/* Drug Name Dropdown */}
-              <div className="w-full">
-                <label className="block text-lg font-medium">Drug</label>
+  
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-md">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Drug</label>
                 <select
                   name="drug"
                   value={prescription.drug || ""}
                   onChange={handlePrescriptionInputChange}
-                  className="mt-2 px-4 py-2 border rounded-lg w-full"
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 >
                   <option value="">Select Drug</option>
                   {drugList.map((drug) => (
@@ -251,14 +284,14 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
                 </select>
               </div>
 
-              {/* Dosage Dropdown */}
-              <div className="w-full">
-                <label className="block text-lg font-medium">Dosage</label>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Dosage</label>
                 <select
                   name="dosage"
                   value={prescription.dosage || ""}
                   onChange={handlePrescriptionInputChange}
-                  className="mt-2 px-4 py-2 border rounded-lg w-full"
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 >
                   <option value="">Select Dosage</option>
                   {predefinedDosages.map((dosage, index) => (
@@ -269,77 +302,98 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ closeModal }) => {
                 </select>
               </div>
 
-              {/* Frequency & Type Frequency */}
-              <div className="w-full">
-                <label className="block text-lg font-medium">Frequency</label>
-                <select
-                  name="frequency"
-                  value={prescription.frequency || 0}
-                  onChange={handlePrescriptionInputChange}
-                  className="mt-2 px-4 py-2 border rounded-lg w-full"
-                >
-                  <option value={0}>Select Frequency</option>
-                  <option value={1}>Once a day</option>
-                  <option value={2}>Twice a day</option>
-                  <option value={3}>Thrice a day</option>
-                </select>
-              </div>
-
-              {/* Type Frequency Dropdown */}
-              <div className="w-full">
-                <label className="block text-lg font-medium">Type Frequency</label>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Interval Between Doses (Days):</label>
                 <select
                   name="typeFrequency"
-                  value={prescription.typeFrequency || 0}
-                  onChange={handlePrescriptionInputChange}
-                  className="mt-2 px-4 py-2 border rounded-lg w-full"
+                  value={prescription.typeFrequency}
+                  onChange={handleChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 >
-                  <option value={0}>Select Frequency Type</option>
-                  <option value={1}>Every day</option>
-                  <option value={2}>Every 2 days</option>
-                  <option value={3}>Every 3 days</option>
+                  {doseIntervals.map((interval) => (
+                    <option key={interval.value} value={interval.value}>
+                      {interval.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Duration */}
-              <div className="w-full">
-                <label className="block text-lg font-medium">Duration (in days)</label>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Duration (in days):</label>
                 <input
                   type="number"
                   name="duration"
-                  value={prescription.duration || 0}
+                  value={prescription.duration}
                   onChange={handlePrescriptionInputChange}
-                  className="mt-2 px-4 py-2 border rounded-lg w-full"
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
               </div>
-            </div>
 
-            {/* Plages Selection */}
-            <div className="w-full">
-              <label className="block text-lg font-medium">Plages</label>
-              <select
-                multiple
-                value={prescription.plages}
-                onChange={handlePlagesChange}
-                className="mt-2 px-4 py-2 border rounded-lg w-full h-40"
-              >
-                {getPlagesOptions(prescription.frequency).map((plage, index) => (
-                  <option key={index} value={plage}>
-                    {plage}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Number of Doses per Day:</label>
+                <select
+                  name="frequency"
+                  value={prescription.frequency || ""}
+                  onChange={handleFrequencyChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {dosesPerDay.map((dose) => (
+                    <option key={dose.value} value={dose.value}>
+                      {dose.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleAddPrescription}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg"
-              >
-                Add Prescription
-              </button>
-            </div>
+              {prescription.frequency > 0 && availablePlages.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-lg font-medium text-gray-700">Plages:</label>
+                  <select
+                    onChange={handlePlageSelect}
+                    value={prescription.plages?.join(',') || ''} // Join the array into a string for display
+                    className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Plages</option>
+                    {availablePlages.map((plage, index) => {
+                      // Map the array of plages to human-readable values
+                      const humanReadablePlages = plage.map((p) => {
+                        switch (p) {
+                          case 'MORNING':
+                            return 'Morning';
+                          case 'MID_DAY':
+                            return 'Mid Day';
+                          case 'NIGHT':
+                            return 'Night';
+                          default:
+                            return p;
+                        }
+                      });
+
+                      return (
+                        <option key={index} value={plage.join(',')}>
+                          {humanReadablePlages.join(' and ')}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-end col-span-2">
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
+                >
+                  Save Prescription
+                </button>
+              </div>
+            </form>
           </div>
+
         </>
       )}
     </div>
