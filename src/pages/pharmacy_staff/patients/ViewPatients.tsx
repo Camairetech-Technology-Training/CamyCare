@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import PrescriptionList from './PatientPrescriptions';
-import { fetchPatients, addPatient } from '../../../services/patientService'; // Import addPatient service
+import { addPatient } from '../../../services/patientService'; // Import addPatient service
 import { Patient } from '../../../models/patient';
+import usePatients from '../../../hooks/usePatients';
 
 export interface Prescription {
   id: number;
@@ -18,10 +19,9 @@ const samplePrescriptions: Prescription[] = [
 ];
 
 const ViewPatients = () => {
-  const [patients, setPatients] = useState<Patient[]>([]);
   const [prescriptions] = useState<Prescription[]>(samplePrescriptions);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(''); // search for patients
   const [currentPage, setCurrentPage] = useState(1);
   const patientsPerPage = 5;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,20 +29,16 @@ const ViewPatients = () => {
   const [newPatientPhone, setNewPatientPhone] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch patients from API on component mount
-  useEffect(() => {
-    const getPatients = async () => {
-      try {
-        const data = await fetchPatients();
-        setPatients(data);
-      } catch (error) {
-        console.error('Failed to load patients');
-      }
-    };
-    getPatients();
-  }, []);
+  const { patients, loading, error, addNewPatient } = usePatients();
 
-  // Filter patients based on the search input
+  if (loading) {
+    return <div>Loading patients...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
   const filteredPatients = patients.filter(
     (patient) =>
       patient.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,6 +67,7 @@ const ViewPatients = () => {
       try {
         const formattedPhone = `+237 ${newPatientPhone}`;
 
+        // Assuming the addPatient function in your service returns the new patient's data
         const response = await addPatient(newPatientName, formattedPhone);
 
         const newPatient: Patient = {
@@ -79,7 +76,9 @@ const ViewPatients = () => {
           phoneNumber: formattedPhone,
         };
 
-        setPatients([newPatient, ...patients]);
+        // Dynamically update the patients list using the custom hook's function
+        addNewPatient(newPatient);  // This will add the new patient to the list
+
         setIsModalOpen(false);
         setNewPatientName('');
         setNewPatientPhone('');
@@ -134,7 +133,7 @@ const ViewPatients = () => {
               type="text"
               placeholder="Enter phone number"
               value={newPatientPhone}
-              onChange={(e) => setNewPatientPhone(e.target.value)}
+              onChange={(e) => setNewPatientPhone(e.target.value)} // Ensure this is for adding patient only
               className="w-full mb-4 p-2 border rounded-md"
             />
             <div className="flex justify-between">

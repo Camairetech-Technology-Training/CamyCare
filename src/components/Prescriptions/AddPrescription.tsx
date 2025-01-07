@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { savePrescription } from '../../services/prescriptionService';
+import { addPatient } from "../../services/patientService";
 import { predefinedDosages } from "../../data/predifinedData";
-import { fetchPatients, addPatient } from "../../services/patientService";
 
 import { Prescription } from "../../models/pescription";
 import { Patient } from "../../models/patient";
@@ -10,10 +10,12 @@ import { drugList } from "../../data/drugData";
 import { doseIntervals } from '../../data/doseIntervals';
 import { dosesPerDay } from '../../data/dosesPerDay';
 
+import usePatients from '../../hooks/usePatients';
+import usePrescriptions from '../../hooks/usePrescriptions'; 
+
 const AddPrescription = () => {
 
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [patients, setPatients] = useState<Patient[]>([]);
     const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isNewPatient, setIsNewPatient] = useState(false);
@@ -25,25 +27,17 @@ const AddPrescription = () => {
       drug: "",
       dosage: "",
       frequency: 0,
-      typeFrequency: 0, // Added typeFrequency to handle frequency type
-      duration: 0,
-      plages: [], // This is now an array of selected plages
+      typeFrequency: 1,
+      duration: 1,
+      plages: [],
     });
 
   const [availablePlages, setAvailablePlages] = useState<string[][]>([]);
   const [, setSelectedPlages] = useState<string[]>([]);
 
-    useEffect(() => {
-      const getPatients = async () => {
-        try {
-          const data = await fetchPatients();
-          setPatients(data);
-        } catch (error) {
-          console.error('Failed to load patients');
-        }
-      };
-      getPatients();
-    }, []);
+  const { patients, addNewPatient } = usePatients();
+   const { addNewPrescription } = usePrescriptions();
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -96,20 +90,20 @@ const AddPrescription = () => {
     }
   
     setAvailablePlages(plagesOptions);
-    setSelectedPlages([]); // Reset selected plages
+    setSelectedPlages([]);
     setPrescription((prevData) => ({
       ...prevData,
       frequency,
-      plages: [], // Reset plages
+      plages: [],
     }));
   };
 
   const handlePlageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedPlages = e.target.value.split(','); // Split the comma-separated value to an array
-    setSelectedPlages(selectedPlages); // Store the selected plages as an array
+    const selectedPlages = e.target.value.split(',');
+    setSelectedPlages(selectedPlages);
     setPrescription((prevData) => ({
       ...prevData,
-      plages: selectedPlages, // Store selected plages in prescription object
+      plages: selectedPlages,
     }));
   };
   
@@ -140,12 +134,12 @@ const AddPrescription = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(prescription)
     try {
       const response = await savePrescription(prescription);
-      console.log('Prescription created:', response);
-      alert('Prescription added successfully!');
-      // Reset form
+
+      // Add new prescription to the state using the hook
+      addNewPrescription(response); // <-- This will update the prescriptions state in the context
+
       setPrescription({
         drug: '',
         dosage: '',
@@ -157,6 +151,9 @@ const AddPrescription = () => {
       });
       setSelectedPlages([]);
       setAvailablePlages([]);
+      setSuccessMessage('Prescription added successfully!');
+
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error creating prescription:', error);
       alert('Error adding prescription. Please try again.');
@@ -182,7 +179,7 @@ const AddPrescription = () => {
           phoneNumber: formattedPhone,
         };
 
-        setPatients((prevPatients) => [newPatient, ...prevPatients]);
+        addNewPatient(newPatient);
         setSelectedPatient(newPatient);
         setNewPatientName('');
         setIsNewPatient(false);
@@ -196,6 +193,11 @@ const AddPrescription = () => {
 
   return (
     <div className="p-4">
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-200 text-green-700 rounded-md">
+          {successMessage}
+        </div>
+      )}
       {/* Phone Number Input */}
       <div className="mb-6 relative max-w-md mx-auto">
         <label className="block text-lg font-medium text-gray-700">Patient Phone Number</label>
