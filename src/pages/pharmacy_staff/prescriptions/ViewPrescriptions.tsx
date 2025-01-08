@@ -81,15 +81,12 @@ const ViewPrescriptions: React.FC = () => {
           <div
             className="container bg-white rounded-lg p-6 xl:w-[50%] max-h-[80vh] overflow-y-auto mt-30 mb-10 p-5"
           >
-            {/* Header */}
             <div className="flex justify-between items-center mb-4 bg-gray-100 p-4 rounded-t-lg">
               <h2 className="text-xl font-semibold text-gray-800">Add Prescription</h2>
             </div>
 
-            {/* AddPrescription Component */}
-            <AddPrescription/>
+            <AddPrescription isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
 
-            {/* Footer */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}
