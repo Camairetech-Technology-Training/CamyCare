@@ -1,62 +1,54 @@
 import React, { useState } from 'react';
-import { Prescription } from '../../types/prescription';
-import { PrescribedDrug } from '../../types/prescribedDrug';
-import { Patient } from '../../types/entities';
+import { savePrescription } from '../../services/prescriptionService';
+import { addPatient } from "../../services/patientService";
+import { predefinedDosages } from "../../data/predifinedData";
 
-import { patientsData } from '../../data/patientData';
-import { drugList } from '../../data/drugData';
-import { predefinedDosages } from '../../data/predifinedData';
-import { predefinedFrequencies } from '../../data/predefinedFrequencies';
+import { Prescription } from "../../models/pescription";
+import { Patient } from "../../models/patient";
 
-interface AddPrescriptionProps {
-  addPrescription: (prescription: Prescription) => void;
-  closeModal: () => void;
-}
+import { drugList } from "../../data/drugData";
+import { doseIntervals } from '../../data/doseIntervals';
+import { dosesPerDay } from '../../data/dosesPerDay';
 
-const AddPrescription: React.FC<AddPrescriptionProps> = ({ addPrescription, closeModal }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [patients, setPatients] = useState<Patient[]>(patientsData);
-  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [drugs, setDrugs] = useState<PrescribedDrug[]>([]);
-  const [newDrug, setNewDrug] = useState({
-    name: '',
-    dosage: '',
-    customDosage: '',
-    frequency: '',
-    customFrequency: '',
-    duration: 0,
-  });
-  const [isNewPatient, setIsNewPatient] = useState(false);
-  const [isAddNewPatient, setIsAddNewPatient] = useState(false);
-  const [isRegisterNewButton, setIsRegisterNewButton] = useState(false);
-  const [newPatientName, setNewPatientName] = useState('');
+import usePatients from '../../hooks/usePatients';
+import usePrescriptions from '../../hooks/usePrescriptions'; 
 
-  const handleSubmit = () => {
-    const newPrescription: Prescription = {
-      id: Date.now(),
-      patientName: selectedPatient?.name ?? 'Unknown',
-      drugs: drugs.map((drug) => drug.name),
-      status: 'In Progress',
-      creationDate: new Date().toISOString().split('T')[0],
-      phoneNumber: selectedPatient?.phoneNumber ?? '',
-    };
+const AddPrescription = () => {
 
-    addPrescription(newPrescription);
-    closeModal();
-  };
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [isNewPatient, setIsNewPatient] = useState(false);
+    const [isAddNewPatient, setIsAddNewPatient] = useState(false);
+    const [isRegisterNewButton, setIsRegisterNewButton] = useState(false);
+    const [newPatientName, setNewPatientName] = useState('');
+    const [prescription, setPrescription] = useState<Prescription>({
+      patientId: "",
+      drug: "",
+      dosage: "",
+      frequency: 0,
+      typeFrequency: 1,
+      duration: 1,
+      plages: [],
+    });
+
+  const [availablePlages, setAvailablePlages] = useState<string[][]>([]);
+  const [, setSelectedPlages] = useState<string[]>([]);
+
+  const { patients, addNewPatient } = usePatients();
+   const { addNewPrescription } = usePrescriptions();
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPhoneNumber(value);
-  
+
     if (value.trim() !== '') {
       const filtered = patients.filter((patient) => patient.phoneNumber.includes(value));
       setFilteredPatients(filtered);
-  
+
       if (filtered.length === 0) {
-  
-        if(value.length == 9) {
+        if (value.length === 9) {
           setIsNewPatient(true);
           setIsRegisterNewButton(true);
           setIsAddNewPatient(false);
@@ -70,293 +62,343 @@ const AddPrescription: React.FC<AddPrescriptionProps> = ({ addPrescription, clos
       setIsNewPatient(false);
     }
   };
-  
-  const addDrugToPrescription = () => {
-    const finalDosage = newDrug.dosage === 'Custom' ? newDrug.customDosage : newDrug.dosage;
-    const finalFrequency = newDrug.frequency === 'Custom' ? newDrug.customFrequency : newDrug.frequency;
-
-    setDrugs([
-      ...drugs,
-      {
-        id: drugs.length + 1,
-        name: newDrug.name,
-        dosage: finalDosage,
-        frequency: finalFrequency,
-        duration: newDrug.duration,
-        prescriptionId: 0,
-        pharmacyDrugId : 0
-      },
-    ]);
-    setNewDrug({
-      name: '',
-      dosage: '',
-      customDosage: '',
-      frequency: '',
-      customFrequency: '',
-      duration: 0,
-    });
-  };
 
   const handleSelectPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setPhoneNumber(patient.phoneNumber);
+    setPrescription((prevState) => ({
+      ...prevState,
+      patientId: patient.id.toString(),
+    }));
     setFilteredPatients([]);
   };
 
-  const handleDrugInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setNewDrug((prevState) => ({
-      ...prevState,
-      [name]: value,
+  const handleFrequencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const frequency = parseInt(e.target.value, 10);
+    let plagesOptions: string[][] = [];
+  
+    if (frequency === 1) {
+      plagesOptions = [['MORNING'], ['MID_DAY'], ['NIGHT']];
+    } else if (frequency === 2) {
+      plagesOptions = [
+        ['MORNING', 'MID_DAY'],
+        ['MORNING', 'NIGHT'],
+        ['MID_DAY', 'NIGHT'],
+      ];
+    } else if (frequency === 3) {
+      plagesOptions = [['MORNING', 'MID_DAY', 'NIGHT']];
+    }
+  
+    setAvailablePlages(plagesOptions);
+    setSelectedPlages([]);
+    setPrescription((prevData) => ({
+      ...prevData,
+      frequency,
+      plages: [],
     }));
   };
 
-  const removeDrug = (id: number) => {
-    setDrugs((prevDrugs) => prevDrugs.filter((drug) => drug.id !== id));
+  const handlePlageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedPlages = e.target.value.split(',');
+    setSelectedPlages(selectedPlages);
+    setPrescription((prevData) => ({
+      ...prevData,
+      plages: selectedPlages,
+    }));
+  };
+  
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+  
+    if (e.target instanceof HTMLSelectElement) {
+      setPrescription((prevData) => ({
+        ...prevData,
+        [name]: parseInt(value, 10),
+      }));
+    } else {
+      setPrescription((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
   };
 
-  const handleRegisterNewPatient = () => {
+  const handlePrescriptionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setPrescription((prevState) => ({
+      ...prevState,
+      [name]: name === "frequency" || name === "typeFrequency" || name === "duration" ? parseInt(value) : value,
+    }));
+  };
 
-    if(phoneNumber.length == 9) {
-      if (newPatientName.trim()) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await savePrescription(prescription);
+
+      // Add new prescription to the state using the hook
+      addNewPrescription(response); // <-- This will update the prescriptions state in the context
+
+      setPrescription({
+        drug: '',
+        dosage: '',
+        frequency: 0,
+        typeFrequency: 1,
+        duration: 1,
+        plages: [],
+        patientId: '0c5223f6-cb97-4e8e-ab7f-9521aa527e95',
+      });
+      setSelectedPlages([]);
+      setAvailablePlages([]);
+      setSuccessMessage('Prescription added successfully!');
+
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error creating prescription:', error);
+      alert('Error adding prescription. Please try again.');
+    }
+  };
+
+  const handleRegisterNewPatient = async () => {
+    if (newPatientName.trim() && phoneNumber.trim()) {
+      const phoneRegex = /^\d{9}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        alert('Please enter a valid 9-digit phone number without spaces.');
+        return;
+      }
+
+      try {
+        const formattedPhone = `+237 ${phoneNumber}`;
+
+        const response = await addPatient(newPatientName, formattedPhone);
+
         const newPatient: Patient = {
-          id: Date.now(),
-          name: newPatientName,
-          phoneNumber,
-          registrationDate: new Date(),
+          id: response.id,
+          fullName: newPatientName,
+          phoneNumber: formattedPhone,
         };
-        setPatients((prevPatients) => [...prevPatients, newPatient]);
+
+        addNewPatient(newPatient);
         setSelectedPatient(newPatient);
-        setPhoneNumber('');
         setNewPatientName('');
         setIsNewPatient(false);
         setIsAddNewPatient(false);
-      } else {
-        alert('Please enter a valid name for the new patient.');
+      } catch (error) {
+        console.error('Failed to add new patient', error);
       }
     }
-  };  
+  };
+
 
   return (
-<div className="p-2">
-
-  {/* Phone Number Input */}
-  <div className="mb-4 relative max-w-md mx-auto">
-    <label className="block text-lg font-medium">Patient Phone Number</label>
-    <input
-      type="text"
-      value={phoneNumber}
-      onChange={handlePhoneNumberChange}
-      className="mt-2 px-4 py-2 border rounded-lg w-full"
-      placeholder="Enter phone number (e.g., 6XXXXXX)"
-    />
-    {filteredPatients.length > 0 && (
-      <ul className="absolute bg-white border rounded-lg mt-1 w-full max-w-sm mx-auto">
-        {filteredPatients.map((patient) => (
-          <li
-            key={patient.id}
-            className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
-            onClick={() => handleSelectPatient(patient)}
-          >
-            {patient.name} ({patient.phoneNumber})
-          </li>
-        ))}
-      </ul>
-    )}
-    {isNewPatient && (
-      <div className="mt-4">
-        {isRegisterNewButton && (
-          <button
-            onClick={() => [setIsAddNewPatient(true), setIsRegisterNewButton(false)]}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg"
-          >
-            Register a New Patient
-          </button>
-        )}
-        {isAddNewPatient && (
-          <div className="mt-4">
-            <input
-              type="text"
-              value={newPatientName}
-              onChange={(e) => setNewPatientName(e.target.value)}
-              placeholder="Enter patient name"
-              className="px-4 py-2 border rounded-lg w-full"
-            />
-            <button
-              onClick={handleRegisterNewPatient}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
-            >
-              Register Patient
-            </button>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-
-  {selectedPatient && (
-    <>
-      <div className="mb-6 bg-white p-4 rounded-lg shadow-md max-w-sm mx-auto">
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">Selected Patient:</h2>
-        <div className="flex flex-col space-y-2">
-          <p className="text-lg font-medium text-gray-700">
-            <span className="font-bold text-gray-900">Name:</span> {selectedPatient.name}
-          </p>
-          <p className="text-lg font-medium text-gray-700">
-            <span className="font-bold text-gray-900">Phone:</span> {selectedPatient.phoneNumber}
-          </p>
+    <div className="p-4">
+      {successMessage && (
+        <div className="mb-4 p-4 bg-green-200 text-green-700 rounded-md">
+          {successMessage}
         </div>
-      </div>
-
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Add Drugs</h2>
-
-        {/* Horizontal Flex Container for Form Fields */}
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          {/* Drug Name Dropdown */}
-          <div className="w-full">
-            <label className="block text-lg font-medium">Drug</label>
-            <select
-              name="name"
-              value={newDrug.name || ""}
-              onChange={handleDrugInputChange}
-              className="mt-2 px-4 py-2 border rounded-lg w-full"
-            >
-              <option value="">Select Drug</option>
-              {drugList.map((drug) => (
-                <option key={drug.id} value={drug.name}>
-                  {drug.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Dosage Dropdown */}
-          <div className="w-full">
-            <label className="block text-lg font-medium">Dosage</label>
-            <select
-              name="dosage"
-              value={newDrug.dosage || ""}
-              onChange={handleDrugInputChange}
-              className="mt-2 px-4 py-2 border rounded-lg w-full"
-            >
-              <option value="">Select Dosage</option>
-              {predefinedDosages.map((dosage, index) => (
-                <option key={index} value={dosage}>
-                  {dosage}
-                </option>
-              ))}
-            </select>
-
-            {newDrug.dosage === "Custom" && (
-              <input
-                type="text"
-                name="customDosage"
-                value={newDrug.customDosage || ""}
-                onChange={handleDrugInputChange}
-                placeholder="Enter custom dosage"
-                className="mt-2 px-4 py-2 border rounded-lg w-full"
-              />
-            )}
-          </div>
-
-          {/* Frequency Dropdown */}
-          <div className="w-full">
-            <label className="block text-lg font-medium">Frequency</label>
-            <select
-              name="frequency"
-              value={newDrug.frequency || ""}
-              onChange={handleDrugInputChange}
-              className="mt-2 px-4 py-2 border rounded-lg w-full"
-            >
-              <option value="">Select Frequency</option>
-              {predefinedFrequencies.map((frequency, index) => (
-                <option key={index} value={frequency}>
-                  {frequency}
-                </option>
-              ))}
-            </select>
-
-            {newDrug.frequency === "Custom" && (
-              <input
-                type="text"
-                name="customFrequency"
-                value={newDrug.customFrequency || ""}
-                onChange={handleDrugInputChange}
-                placeholder="Enter custom frequency"
-                className="mt-2 px-4 py-2 border rounded-lg w-full"
-              />
-            )}
-          </div>
-
-          {/* Duration Input */}
-          <div className="w-full">
-            <label className="block text-lg font-medium">Duration (Days)</label>
-            <input
-              type="number"
-              name="duration"
-              value={newDrug.duration || ""}
-              onChange={handleDrugInputChange}
-              className="mt-2 px-4 py-2 border rounded-lg w-full"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={addDrugToPrescription}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-          >
-            Add Drug
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className="text-2xl font-semibold mb-4">Drugs in Prescription</h3>
-        <table className="table-auto w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 px-4 py-2">Name</th>
-              <th className="border border-gray-300 px-4 py-2">Dosage</th>
-              <th className="border border-gray-300 px-4 py-2">Frequency</th>
-              <th className="border border-gray-300 px-4 py-2">Duration (Days)</th>
-              <th className="border border-gray-300 px-4 py-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {drugs.map((drug) => (
-              <tr key={drug.id} className="text-center">
-                <td className="border border-gray-300 px-4 py-2">{drug.name}</td>
-                <td className="border border-gray-300 px-4 py-2">{drug.dosage}</td>
-                <td className="border border-gray-300 px-4 py-2">{drug.frequency}</td>
-                <td className="border border-gray-300 px-4 py-2">{drug.duration}</td>
-                <td className="border border-gray-300 px-4 py-2">
-                  <button
-                    onClick={() => removeDrug(drug.id)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
+      )}
+      {/* Phone Number Input */}
+      <div className="mb-6 relative max-w-md mx-auto">
+        <label className="block text-lg font-medium text-gray-700">Patient Phone Number</label>
+        <input
+          type="text"
+          value={phoneNumber}
+          onChange={handlePhoneNumberChange}
+          className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Enter phone number (e.g., 6XXXXXX)"
+        />
+        {filteredPatients.length > 0 && (
+          <ul className="absolute bg-white border border-gray-300 rounded-lg mt-1 w-full max-w-sm mx-auto shadow-md">
+            {filteredPatients.map((patient) => (
+              <li
+                key={patient.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSelectPatient(patient)}
+              >
+                {patient.fullName} ({patient.phoneNumber})
+              </li>
             ))}
-          </tbody>
-        </table>
+          </ul>
+        )}
+        {isNewPatient && (
+          <div className="mt-4">
+            {isRegisterNewButton && (
+              <button
+                onClick={() => [setIsAddNewPatient(true), setIsRegisterNewButton(false)]}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700"
+              >
+                Register a New Patient
+              </button>
+            )}
+            {isAddNewPatient && (
+              <div className="mt-4">
+                <input
+                  type="text"
+                  value={newPatientName}
+                  onChange={(e) => setNewPatientName(e.target.value)}
+                  placeholder="Enter patient name"
+                  className="px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleRegisterNewPatient}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
+                >
+                  Register Patient
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+  
+      {selectedPatient && (
+        <>
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-md max-w-sm mx-auto">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Selected Patient:</h2>
+            <div className="flex flex-col space-y-2">
+              <p className="text-lg font-medium text-gray-700">
+                <span className="font-bold text-gray-900">Name:</span> {selectedPatient.fullName}
+              </p>
+              <p className="text-lg font-medium text-gray-700">
+                <span className="font-bold text-gray-900">Phone:</span> {selectedPatient.phoneNumber}
+              </p>
+            </div>
+          </div>
+  
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-md">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Drug</label>
+                <select
+                  name="drug"
+                  value={prescription.drug || ""}
+                  onChange={handlePrescriptionInputChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Drug</option>
+                  {drugList.map((drug) => (
+                    <option key={drug.id} value={drug.name}>
+                      {drug.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      <div className="mt-6">
-        <button
-          onClick={handleSubmit}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg"
-        >
-          Submit Prescription
-        </button>
-      </div>
-    </>
-  )}
-</div>
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Dosage</label>
+                <select
+                  name="dosage"
+                  value={prescription.dosage || ""}
+                  onChange={handlePrescriptionInputChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Dosage</option>
+                  {predefinedDosages.map((dosage, index) => (
+                    <option key={index} value={dosage}>
+                      {dosage}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Interval Between Doses (Days):</label>
+                <select
+                  name="typeFrequency"
+                  value={prescription.typeFrequency}
+                  onChange={handleChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {doseIntervals.map((interval) => (
+                    <option key={interval.value} value={interval.value}>
+                      {interval.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Duration (in days):</label>
+                <input
+                  type="number"
+                  name="duration"
+                  value={prescription.duration}
+                  onChange={handlePrescriptionInputChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-lg font-medium text-gray-700">Number of Doses per Day:</label>
+                <select
+                  name="frequency"
+                  value={prescription.frequency || ""}
+                  onChange={handleFrequencyChange}
+                  className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {dosesPerDay.map((dose) => (
+                    <option key={dose.value} value={dose.value}>
+                      {dose.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {prescription.frequency > 0 && availablePlages.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-lg font-medium text-gray-700">Plages:</label>
+                  <select
+                    onChange={handlePlageSelect}
+                    value={prescription.plages?.join(',') || ''} // Join the array into a string for display
+                    className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select Plages</option>
+                    {availablePlages.map((plage, index) => {
+                      // Map the array of plages to human-readable values
+                      const humanReadablePlages = plage.map((p) => {
+                        switch (p) {
+                          case 'MORNING':
+                            return 'Morning';
+                          case 'MID_DAY':
+                            return 'Mid Day';
+                          case 'NIGHT':
+                            return 'Night';
+                          default:
+                            return p;
+                        }
+                      });
+
+                      return (
+                        <option key={index} value={plage.join(',')}>
+                          {humanReadablePlages.join(' and ')}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-end col-span-2">
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
+                >
+                  Save Prescription
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </>
+      )}
+    </div>
   );
 };
 
