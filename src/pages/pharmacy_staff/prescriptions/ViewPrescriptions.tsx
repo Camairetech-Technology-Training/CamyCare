@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
-import { prescriptionsData } from '../../../data/prescriptionsData';
-import { filterPrescriptions } from '../../../utils/filters';
-import { usePagination } from '../../../hooks/usePagination';
 import PrescriptionTable from '../../../components/Prescriptions/PrescriptionTable/PrescriptionTable';
 import PaginationControls from '../../../components/Prescriptions/PaginationControls/PaginationControls';
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
-
-import { addPrescription } from '../../../services/prescriptionService';
-import { Prescription } from '../../../types/prescription';
+import { usePagination } from '../../../hooks/usePagination';
+import usePrescriptions from '../../../hooks/usePrescriptions';
 
 const ViewPrescriptions: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,16 +12,27 @@ const ViewPrescriptions: React.FC = () => {
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const { prescriptions } = usePrescriptions();
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
 
-  const filteredPrescriptions = filterPrescriptions(
-    prescriptionsData,
-    searchQuery,
-    statusFilter,
-    phoneNumberFilter
-  );
+  const filteredPrescriptions = prescriptions.filter((prescription) => {
+    const matchesSearch = prescription.patient?.fullName
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter
+      ? prescription.status === statusFilter
+      : true;
+    const matchesPhoneNumber = phoneNumberFilter
+      ? prescription.patient?.phoneNumber.includes(phoneNumberFilter)
+      : true;
 
-  const currentPrescriptions = filteredPrescriptions.slice(indexOfFirstItem, indexOfLastItem);
+    return matchesSearch && matchesStatus && matchesPhoneNumber;
+  });
+
+  const currentPrescriptions = filteredPrescriptions.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredPrescriptions.length / 5);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,11 +45,6 @@ const ViewPrescriptions: React.FC = () => {
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneNumberFilter(e.target.value);
-  };
-
-  const handleAddPrescription = (newPrescription: Prescription) => {
-    addPrescription(newPrescription);
-    setIsModalOpen(false);
   };
 
   return (
@@ -85,20 +87,19 @@ const ViewPrescriptions: React.FC = () => {
             </div>
 
             {/* AddPrescription Component */}
-            <AddPrescription addPrescription={handleAddPrescription} closeModal={() => setIsModalOpen(false)} />
+            <AddPrescription/>
 
             {/* Footer */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-black py-2 px-4 rounded-md mr-2"
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>
         </div>
-
       )}
     </div>
   );
