@@ -8,6 +8,7 @@ interface PharmacyData {
 interface UserContextType {
   pharmacyData: PharmacyData | null;
   setPharmacyData: (data: PharmacyData | null) => void;
+  clearPharmacyData: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -26,8 +27,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const clearPharmacyData = () => {
+    setPharmacyData(null);
+    localStorage.removeItem('pharmacyData');
+  };
+
   return (
-    <UserContext.Provider value={{ pharmacyData, setPharmacyData }}>
+    <UserContext.Provider value={{ pharmacyData, setPharmacyData, clearPharmacyData }}>
       {children}
     </UserContext.Provider>
   );

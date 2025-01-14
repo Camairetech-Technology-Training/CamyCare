@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import Loader from './common/Loader';
 import PageTitle from './components/PageTitle';
@@ -16,6 +16,7 @@ import { UserProvider } from './context/UserContext';
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,7 +26,18 @@ function App() {
     setTimeout(() => setLoading(false), 1000);
   }, []);
 
-  // Routes that should not use the default layout
+  useEffect(() => {
+    const pharmacyData = localStorage.getItem('pharmacyData');
+
+    if (!pharmacyData && !pathname.startsWith('/auth')) {
+      navigate('/auth/signin');
+    }
+
+    if (pharmacyData && pathname === '/') {
+      navigate('/prescriptions/view');
+    }
+  }, [pathname, navigate]);
+
   const isAuthRoute = pathname.startsWith('/auth');
 
   return loading ? (

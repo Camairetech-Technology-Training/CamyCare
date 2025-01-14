@@ -113,7 +113,7 @@ const SignUp: React.FC = () => {
               {step === 1 ? (
                 <>
                   <h2 className="mb-4 text-2xl font-bold text-black dark:text-white sm:text-3xl">
-                    Pharmacy Sign Up
+                    CamyCare Sign Up
                   </h2>
                   <form onSubmit={handleFormSubmit}>
                     {/* Form Fields */}
@@ -215,6 +215,16 @@ const SignUp: React.FC = () => {
                   </button>
                 </>
               )}
+
+                <div className="mt-6 text-center">
+                  <p>
+                    Already have an account?{' '}
+                    <Link to="/auth/signin" className="text-primary">
+                      Sign In
+                    </Link>
+                  </p>
+                </div>
+
               {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
           </div>

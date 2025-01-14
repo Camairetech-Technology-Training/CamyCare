@@ -64,7 +64,7 @@ const SignIn: React.FC = () => {
               <div className="p-4 sm:p-8">
                 <span className="mb-1.5 block font-medium">Start for free</span>
                 <h2 className="mb-4 text-2xl font-bold text-black dark:text-white sm:text-3xl">
-                  Sign In to TailAdmin
+                  Sign In to CamyCare
                 </h2>
 
                 <form onSubmit={handleSubmit}>
@@ -105,6 +105,15 @@ const SignIn: React.FC = () => {
                     Sign In
                   </button>
                 </form>
+
+                <div className="mt-6 text-center">
+                  <p>
+                    Don’t have any account?{' '}
+                    <Link to="/auth/signup" className="text-primary">
+                      Sign Up
+                    </Link>
+                  </p>
+                </div>
 
                 {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
               </div>
