@@ -5,7 +5,10 @@ export const ENDPOINTS = {
     ADD_PATIENT: '/patients',
 
     GET_PRESCRIPTION: '/prescriptions',
-    ADD_PRESCRIPTION: '/save-prescription'
+    ADD_PRESCRIPTION: '/save-prescription',
+
+    SIGNUP_PHARMACY: '/pharmacies',
+    GET_PHARMACY: '/pharmacies'
 } as const;
 
 export type EndpointKey = keyof typeof ENDPOINTS;

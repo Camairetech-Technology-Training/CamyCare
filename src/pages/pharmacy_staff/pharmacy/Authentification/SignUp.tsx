@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import LogoDark from '../../images/logo/logo-dark.svg';
-import Logo from '../../images/logo/logo.svg';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import LogoDark from '../../../../images/logo/logo-dark.svg';
+import Logo from '../../../../images/logo/logo.svg';
+import { signUpPharmacy, getPharmacyById } from '../../../../services/pharmacyService';
+import QRCode from 'react-qr-code';
 
 const SignUp: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -11,29 +13,81 @@ const SignUp: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [error, setError] = useState('');
+  const [authStatus, setAuthStatus] = useState(false);
+  const [pharmacyId, setPharmacyId] = useState<string>('');
+  const [attempts, setAttempts] = useState(0);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match!');
       return;
     }
 
-    setTimeout(() => {
-      setQrCodeUrl('https://via.placeholder.com/200?text=QR+Code');
-      setStep(2);
-    }, 1000);
+    let phoneWithCountry = '+237' + formData.contactNumber;
+
+    try {
+      const response = await signUpPharmacy({
+        name: formData.pharmacyName,
+        phoneNumber: phoneWithCountry,
+        password: formData.password,
+      });
+
+      if (response) {
+        setQrCodeUrl(response.qrCode);
+        setPharmacyId(response.id);
+        setStep(2);
+      }
+    } catch (error) {
+      setError('Error during sign up. Please try again later.');
+      console.error(error);
+    }
   };
+
+  const checkAuthStatus = async () => {
+    if (!pharmacyId || attempts >= 5 || authStatus) return;
+
+    try {
+      const response = await getPharmacyById(pharmacyId);
+      if (response && response.authFilePath) {
+        setAuthStatus(true);
+        setTimeout(() => {
+          navigate('/prescriptions/view');
+        }, 2000);
+      } else {
+        setAttempts((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error fetching pharmacy details:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (pharmacyId) {
+      const timer = setInterval(() => {
+        checkAuthStatus();
+      }, 5000);
+
+      if (attempts >= 5 || authStatus) clearInterval(timer);
+      return () => clearInterval(timer);
+    }
+  }, [pharmacyId, attempts, authStatus]);
 
   const handleGoBack = () => {
     setStep(1);
     setQrCodeUrl('');
+    setAuthStatus(false);
+    setAttempts(0);
   };
 
   return (
@@ -62,6 +116,7 @@ const SignUp: React.FC = () => {
                     Pharmacy Sign Up
                   </h2>
                   <form onSubmit={handleFormSubmit}>
+                    {/* Form Fields */}
                     <div className="mb-4">
                       <label className="block mb-2 text-sm font-medium text-black dark:text-white">
                         Pharmacy Name
@@ -140,11 +195,18 @@ const SignUp: React.FC = () => {
                   </p>
                   <div className="flex items-center justify-center mb-4">
                     {qrCodeUrl ? (
-                      <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                      <div className="mb-4">
+                        <QRCode value={qrCodeUrl} size={256} />
+                      </div>
                     ) : (
                       <p>Loading QR Code...</p>
                     )}
                   </div>
+                  {authStatus && (
+                    <div className="m-2 p-4 rounded-lg bg-green-100 text-green-800 text-sm font-medium">
+                      🎉 Signup Successful! Redirecting...
+                    </div>
+                  )}
                   <button
                     onClick={handleGoBack}
                     className="w-full rounded-lg bg-secondary py-3 text-sm font-medium text-black hover:bg-secondary-dark focus:outline-none"
@@ -153,6 +215,7 @@ const SignUp: React.FC = () => {
                   </button>
                 </>
               )}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
           </div>
         </div>
