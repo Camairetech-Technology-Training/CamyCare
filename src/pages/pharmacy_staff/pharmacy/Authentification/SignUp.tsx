@@ -63,7 +63,7 @@ const SignUp: React.FC = () => {
         setAuthStatus(true);
         setTimeout(() => {
           navigate('/prescriptions/view');
-        }, 2000);
+        }, 5000);
       } else {
         setAttempts((prev) => prev + 1);
       }

@@ -8,7 +8,8 @@ export const ENDPOINTS = {
     ADD_PRESCRIPTION: '/save-prescription',
 
     SIGNUP_PHARMACY: '/pharmacies',
-    GET_PHARMACY: '/pharmacies'
+    GET_PHARMACY: '/pharmacies',
+    LOGIN_PHARMACY: '/pharmacies/login'
 } as const;
 
 export type EndpointKey = keyof typeof ENDPOINTS;
