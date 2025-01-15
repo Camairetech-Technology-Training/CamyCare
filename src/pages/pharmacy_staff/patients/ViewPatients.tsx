@@ -61,7 +61,7 @@ const ViewPatients = () => {
       }
 
       try {
-        const formattedPhone = `+237 ${newPatientPhone}`;
+        const formattedPhone = `237${newPatientPhone}`;
 
         const response = await addPatient(newPatientName, formattedPhone);
 

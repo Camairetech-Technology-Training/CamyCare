@@ -78,7 +78,7 @@ const SignUp: React.FC = () => {
         checkAuthStatus();
       }, 5000);
 
-      if (attempts >= 5 || authStatus) clearInterval(timer);
+      if (attempts >= 15 || authStatus) clearInterval(timer);
       return () => clearInterval(timer);
     }
   }, [pharmacyId, attempts, authStatus]);
