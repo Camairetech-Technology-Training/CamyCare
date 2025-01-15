@@ -10,8 +10,8 @@ import { drugList } from "../../data/drugData";
 import { doseIntervals } from '../../data/doseIntervals';
 import { dosesPerDay } from '../../data/dosesPerDay';
 
-import usePatients from '../../hooks/usePatients';
-import usePrescriptions from '../../hooks/usePrescriptions'; 
+import { usePatientContext } from '../../context/PatientProvider';
+import { usePrescriptionContext } from '../../context/PrescriptionContext'
 import Alerts from '../../pages/UiElements/Alerts';
 
 const AddPrescription: React.FC<{ isModalOpen: boolean; setIsModalOpen: (open: boolean) => void }> = ({
@@ -39,8 +39,8 @@ const AddPrescription: React.FC<{ isModalOpen: boolean; setIsModalOpen: (open: b
   const [availablePlages, setAvailablePlages] = useState<string[][]>([]);
   const [, setSelectedPlages] = useState<string[]>([]);
 
-  const { patients, addNewPatient } = usePatients();
-  const { addNewPrescription } = usePrescriptions();
+    const { patients, addNewPatient } = usePatientContext();
+  const { addNewPrescription } = usePrescriptionContext();
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

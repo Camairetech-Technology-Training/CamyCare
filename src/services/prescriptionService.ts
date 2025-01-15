@@ -49,9 +49,11 @@ export const savePrescription = async (prescription: Prescription) => {
   }
 
   const data = JSON.stringify({
-    prescription,
+    ...prescription,
     pharmacyId: pharmacyData.id,
   });
+
+  console.log(data)
 
   const config = {
     method: 'post',
