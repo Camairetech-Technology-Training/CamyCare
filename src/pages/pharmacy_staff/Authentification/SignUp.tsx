@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import LogoDark from '../../../../images/logo/logo-dark.svg';
-import Logo from '../../../../images/logo/logo.svg';
-import { signUpPharmacy, getPharmacyById } from '../../../../services/pharmacyService';
+import LogoDark from '../../../images/logo/logo-dark.svg';
+import Logo from '../../../images/logo/logo.svg';
+import { signUpPharmacy, getPharmacyById } from '../../../services/pharmacyService';
 import QRCode from 'react-qr-code';
 
 const SignUp: React.FC = () => {

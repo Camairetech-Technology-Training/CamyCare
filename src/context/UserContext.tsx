@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface PharmacyData {
+  id: string;
   phoneNumber: string;
   name: string;
 }

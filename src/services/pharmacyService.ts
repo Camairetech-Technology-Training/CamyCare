@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { BASE_URL, ENDPOINTS } from '../api/urls';
+import LocalStorageService from './localStorageService';
 
 const SIGNUP_PHARMACY_URL = `${BASE_URL}${ENDPOINTS.SIGNUP_PHARMACY}`;
 const GET_PHARMACY_URL = `${BASE_URL}${ENDPOINTS.GET_PHARMACY}`;
@@ -67,7 +68,7 @@ export const loginPharmacy = async (data: LoginPharmacyData) => {
     const response = await axios.request(config);
     console.log('Login successful:', response.data);
     
-    localStorage.setItem('pharmacyData', JSON.stringify(response.data));
+    LocalStorageService.setItem('pharmacyData', JSON.stringify(response.data));
     return response.data;
   } catch (error) {
     console.error('Login error:', error);

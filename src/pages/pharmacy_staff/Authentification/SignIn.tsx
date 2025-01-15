@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import LogoDark from '../../../../images/logo/logo-dark.svg';
-import Logo from '../../../../images/logo/logo.svg';
-import { loginPharmacy } from '../../../../services/pharmacyService';
-import { useUser } from '../../../../context/UserContext';
+import LogoDark from '../../../images/logo/logo-dark.svg';
+import Logo from '../../../images/logo/logo.svg';
+import { loginPharmacy } from '../../../services/pharmacyService';
+import { useUser } from '../../../context/UserContext';
 
 const SignIn: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState<string>('');

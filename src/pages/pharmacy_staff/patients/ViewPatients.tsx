@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import PrescriptionList from './PatientPrescriptions';
-import { addPatient } from '../../../services/patientService'; // Import addPatient service
+import { addPatient } from '../../../services/patientService';
 import { Patient } from '../../../models/patient';
-import usePatients from '../../../hooks/usePatients';
+import { usePatientContext } from '../../../context/PatientProvider';
+import { useUser } from '../../../context/UserContext';
+import { transformSnakeToCamel } from '../../../utils/transformUtils';
 
 export interface Prescription {
   id: number;
-  patientId: number; // link to Patient
+  patientId: number;
   drugs: string[];
   status: string;
   creationDate: string;
@@ -19,9 +21,13 @@ const samplePrescriptions: Prescription[] = [
 ];
 
 const ViewPatients = () => {
-  const [prescriptions] = useState<Prescription[]>(samplePrescriptions);
+  const { pharmacyData } = useUser();
+  const { patients, addNewPatient } = usePatientContext();
+
+  const transformedPatients = patients.map((patient) => transformSnakeToCamel(patient));
+
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  const [search, setSearch] = useState(''); // search for patients
+  const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const patientsPerPage = 5;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,27 +35,20 @@ const ViewPatients = () => {
   const [newPatientPhone, setNewPatientPhone] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const { patients, loading, error, addNewPatient } = usePatients();
-
-  if (loading) {
-    return <div>Loading patients...</div>;
+  if (!pharmacyData) {
+    return <div>Error: Pharmacy data is missing.</div>;
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  const filteredPatients = patients.filter(
+  const filteredPatients = transformedPatients.filter(
     (patient) =>
-      patient.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      patient.phoneNumber.includes(search)
+      (patient.fullName && patient.fullName.toLowerCase().includes(search.toLowerCase())) || 
+      (patient.phoneNumber && patient.phoneNumber.includes(search))
   );
 
   const togglePrescriptions = (patientId: number) => {
     setSelectedPatientId((prevId) => (prevId === patientId ? null : patientId));
   };
 
-  // Pagination logic
   const indexOfLastPatient = currentPage * patientsPerPage;
   const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
   const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
@@ -67,7 +66,6 @@ const ViewPatients = () => {
       try {
         const formattedPhone = `+237 ${newPatientPhone}`;
 
-        // Assuming the addPatient function in your service returns the new patient's data
         const response = await addPatient(newPatientName, formattedPhone);
 
         const newPatient: Patient = {
@@ -76,8 +74,7 @@ const ViewPatients = () => {
           phoneNumber: formattedPhone,
         };
 
-        // Dynamically update the patients list using the custom hook's function
-        addNewPatient(newPatient);  // This will add the new patient to the list
+        addNewPatient(newPatient);
 
         setIsModalOpen(false);
         setNewPatientName('');
@@ -103,7 +100,6 @@ const ViewPatients = () => {
         </button>
       </div>
 
-      {/* Display success message */}
       {successMessage && (
         <div className="mb-4 p-4 bg-green-200 text-green-700 rounded-md">
           {successMessage}
@@ -133,7 +129,7 @@ const ViewPatients = () => {
               type="text"
               placeholder="Enter phone number"
               value={newPatientPhone}
-              onChange={(e) => setNewPatientPhone(e.target.value)} // Ensure this is for adding patient only
+              onChange={(e) => setNewPatientPhone(e.target.value)}
               className="w-full mb-4 p-2 border rounded-md"
             />
             <div className="flex justify-between">
@@ -164,7 +160,8 @@ const ViewPatients = () => {
             </tr>
           </thead>
           <tbody>
-            {currentPatients.map((patient) => (
+          {currentPatients.length > 0 ? (
+            currentPatients.map((patient) => (
               <React.Fragment key={patient.id}>
                 <tr>
                   <td className="border-b py-5 px-4">{patient.fullName}</td>
@@ -185,17 +182,21 @@ const ViewPatients = () => {
                 {selectedPatientId === patient.id && (
                   <tr>
                     <td colSpan={4} className="border-b py-5 px-4">
-                      <PrescriptionList prescriptions={prescriptions} />
+                      <PrescriptionList prescriptions={samplePrescriptions} />
                     </td>
                   </tr>
                 )}
               </React.Fragment>
-            ))}
+            ))
+          ) : (
+            <tr>
+              <td colSpan={3} className="py-5 text-center">No patients found.</td>
+            </tr>
+          )}
+
           </tbody>
         </table>
       </div>
-
-      {/* Pagination Controls */}
       <div className="flex justify-between items-center mt-4 mb-4">
         <button
           className="px-4 py-2 bg-gray-300 text-black rounded-md"
