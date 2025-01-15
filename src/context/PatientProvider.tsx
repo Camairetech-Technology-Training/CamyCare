@@ -6,7 +6,7 @@ import { Patient } from '../models/patient';
 interface PatientContextProps {
   patients: Patient[];
   setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
-  addNewPatient: (newPatient: Patient) => void;  // Function to add a patient
+  addNewPatient: (newPatient: Patient) => void;
 }
 
 const PatientContext = createContext<PatientContextProps | undefined>(undefined);
@@ -44,7 +44,6 @@ export const PatientProvider: React.FC<PatientProviderProps> = ({ children }) =>
     }
   }, [patients, pharmacyData]);
 
-  // Function to add a new patient
   const addNewPatient = (newPatient: Patient) => {
     setPatients((prevPatients) => [...prevPatients, newPatient]);
   };

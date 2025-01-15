@@ -3,12 +3,7 @@ import { Patient } from '../models/patient';
 import { BASE_URL, ENDPOINTS } from '../api/urls';
 import axios from 'axios';
 import LocalStorageService from './localStorageService';
-
-interface PharmacyData {
-  id: string;
-  name: string;
-  phoneNumber: string;
-}
+import { Pharmacy } from '../models/pharmacy';
 
 const GET_PATIENT_URL = `${BASE_URL}${ENDPOINTS.GET_PATIENTS}`
 const ADD_PATIENT_URL = `${BASE_URL}${ENDPOINTS.ADD_PATIENT}`;
@@ -46,7 +41,7 @@ export const fetchPatients = async (): Promise<Patient[]> => {
 };
 
 export const addPatient = async (fullName: string, phoneNumber: string): Promise<Patient> => {
-  const pharmacyData = LocalStorageService.getItem<PharmacyData>('pharmacyData');
+  const pharmacyData = LocalStorageService.getItem<Pharmacy>('pharmacyData');
 
   if (!pharmacyData || !pharmacyData.id) {
     throw new Error('Pharmacy data is missing or invalid in local storage');

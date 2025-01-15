@@ -4,7 +4,6 @@ import { addPatient } from '../../../services/patientService';
 import { Patient } from '../../../models/patient';
 import { usePatientContext } from '../../../context/PatientProvider';
 import { useUser } from '../../../context/UserContext';
-import { transformSnakeToCamel } from '../../../utils/transformUtils';
 
 export interface Prescription {
   id: number;
@@ -24,8 +23,6 @@ const ViewPatients = () => {
   const { pharmacyData } = useUser();
   const { patients, addNewPatient } = usePatientContext();
 
-  const transformedPatients = patients.map((patient) => transformSnakeToCamel(patient));
-
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,7 +36,7 @@ const ViewPatients = () => {
     return <div>Error: Pharmacy data is missing.</div>;
   }
 
-  const filteredPatients = transformedPatients.filter(
+  const filteredPatients = patients.filter(
     (patient) =>
       (patient.fullName && patient.fullName.toLowerCase().includes(search.toLowerCase())) || 
       (patient.phoneNumber && patient.phoneNumber.includes(search))

@@ -1,14 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface PharmacyData {
-  id: string;
-  phoneNumber: string;
-  name: string;
-}
+import { Pharmacy } from '../models/pharmacy';
 
 interface UserContextType {
-  pharmacyData: PharmacyData | null;
-  setPharmacyData: (data: PharmacyData | null) => void;
+  pharmacyData: Pharmacy | null;
+  setPharmacyData: (data: Pharmacy | null) => void;
   clearPharmacyData: () => void;
 }
 
@@ -19,7 +14,7 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [pharmacyData, setPharmacyData] = useState<PharmacyData | null>(null);
+  const [pharmacyData, setPharmacyData] = useState<Pharmacy | null>(null);
 
   useEffect(() => {
     const storedData = localStorage.getItem('pharmacyData');

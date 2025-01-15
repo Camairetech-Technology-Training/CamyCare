@@ -4,7 +4,7 @@ import PaginationControls from '../../../components/Prescriptions/PaginationCont
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
 import { usePagination } from '../../../hooks/usePagination';
-import usePrescriptions from '../../../hooks/usePrescriptions';
+import { usePrescriptionContext } from '../../../context/PrescriptionContext';
 
 const ViewPrescriptions: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +12,7 @@ const ViewPrescriptions: React.FC = () => {
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { prescriptions } = usePrescriptions();
+  const { prescriptions } = usePrescriptionContext(); 
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
 
   const filteredPrescriptions = prescriptions.filter((prescription) => {

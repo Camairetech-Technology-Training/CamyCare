@@ -7,6 +7,7 @@ export const ENDPOINTS = {
 
     GET_PRESCRIPTION: '/prescriptions',
     ADD_PRESCRIPTION: '/save-prescription',
+    GET_PRESCRIPTIONS_BY_PHARMACY: '/prescriptions/pharmacy',
 
     SIGNUP_PHARMACY: '/pharmacies',
     GET_PHARMACY: '/pharmacies',
