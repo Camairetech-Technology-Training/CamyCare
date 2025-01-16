@@ -2,9 +2,30 @@ import { apiCall } from '../api/api';
 import { Patient } from '../models/patient';
 import { BASE_URL, ENDPOINTS } from '../api/urls';
 import axios from 'axios';
+import LocalStorageService from './localStorageService';
+import { Pharmacy } from '../models/pharmacy';
 
 const GET_PATIENT_URL = `${BASE_URL}${ENDPOINTS.GET_PATIENTS}`
 const ADD_PATIENT_URL = `${BASE_URL}${ENDPOINTS.ADD_PATIENT}`;
+const GET_PATIENTS_BY_PHARMACY_URL = `${BASE_URL}${ENDPOINTS.GET_PATIENTS_BY_PHARMACY}`;
+
+export const fetchPatientsByPharmacyId = async (pharmacyId: string): Promise<Patient[]> => {
+  if (!pharmacyId) {
+    throw new Error('Pharmacy ID is required');
+  }
+
+  try {
+    const response = await apiCall<null, Patient[]>({
+      url: `${GET_PATIENTS_BY_PHARMACY_URL}/${pharmacyId}`,
+      method: 'GET',
+    });
+    console.log(`Fetched patients for pharmacy ${pharmacyId}:`, response);
+    return response;
+  } catch (error) {
+    console.error('Error fetching patients by pharmacy ID:', error);
+    throw error;
+  }
+};
 
 export const fetchPatients = async (): Promise<Patient[]> => {
   try {
@@ -20,9 +41,16 @@ export const fetchPatients = async (): Promise<Patient[]> => {
 };
 
 export const addPatient = async (fullName: string, phoneNumber: string): Promise<Patient> => {
+  const pharmacyData = LocalStorageService.getItem<Pharmacy>('pharmacyData');
+
+  if (!pharmacyData || !pharmacyData.id) {
+    throw new Error('Pharmacy data is missing or invalid in local storage');
+  }
+
   const data = JSON.stringify({
     fullName,
     phoneNumber,
+    pharmacyId: pharmacyData.id,
   });
 
   const config = {
@@ -44,3 +72,4 @@ export const addPatient = async (fullName: string, phoneNumber: string): Promise
     throw error;
   }
 };
+

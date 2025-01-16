@@ -11,10 +11,8 @@ interface PrescriptionFiltersProps {
 }
 
 const PrescriptionFilters: React.FC<PrescriptionFiltersProps> = ({
-  searchQuery,
   statusFilter,
   phoneNumberFilter,
-  onSearchChange,
   onStatusChange,
   onPhoneNumberChange,
 }) => {
@@ -22,12 +20,11 @@ const PrescriptionFilters: React.FC<PrescriptionFiltersProps> = ({
     <div className="mb-4 flex space-x-4">
       <input
         type="text"
-        placeholder="Search prescriptions"
-        value={searchQuery}
-        onChange={onSearchChange}
+        placeholder="Filter by phone number"
+        value={phoneNumberFilter}
+        onChange={onPhoneNumberChange}
         className="py-2 px-4 border rounded-md w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-
       <select
         value={statusFilter}
         onChange={onStatusChange}
@@ -35,19 +32,11 @@ const PrescriptionFilters: React.FC<PrescriptionFiltersProps> = ({
       >
         <option value="">All Status</option>
         {statuses.map((status) => (
-          <option key={status} value={status}>
-            {status}
+          <option key={status.value} value={status.value}>
+            {status.label}
           </option>
         ))}
       </select>
-
-      <input
-        type="text"
-        placeholder="Filter by phone number"
-        value={phoneNumberFilter}
-        onChange={onPhoneNumberChange}
-        className="py-2 px-4 border rounded-md w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
     </div>
   );
 };

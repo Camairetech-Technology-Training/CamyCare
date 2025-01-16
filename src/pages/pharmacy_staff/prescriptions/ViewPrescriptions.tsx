@@ -4,7 +4,7 @@ import PaginationControls from '../../../components/Prescriptions/PaginationCont
 import AddPrescription from '../../../components/Prescriptions/AddPrescription';
 import PrescriptionFilters from '../../../components/Prescriptions/Filters/PrescriptionFilters';
 import { usePagination } from '../../../hooks/usePagination';
-import usePrescriptions from '../../../hooks/usePrescriptions';
+import { usePrescriptionContext } from '../../../context/PrescriptionContext';
 
 const ViewPrescriptions: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +12,7 @@ const ViewPrescriptions: React.FC = () => {
   const [phoneNumberFilter, setPhoneNumberFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { prescriptions } = usePrescriptions();
+  const { prescriptions } = usePrescriptionContext(); 
   const { currentPage, paginate, indexOfLastItem, indexOfFirstItem } = usePagination(5);
 
   const filteredPrescriptions = prescriptions.filter((prescription) => {
@@ -81,15 +81,12 @@ const ViewPrescriptions: React.FC = () => {
           <div
             className="container bg-white rounded-lg p-6 xl:w-[50%] max-h-[80vh] overflow-y-auto mt-30 mb-10 p-5"
           >
-            {/* Header */}
             <div className="flex justify-between items-center mb-4 bg-gray-100 p-4 rounded-t-lg">
               <h2 className="text-xl font-semibold text-gray-800">Add Prescription</h2>
             </div>
 
-            {/* AddPrescription Component */}
-            <AddPrescription/>
+            <AddPrescription isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
 
-            {/* Footer */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}

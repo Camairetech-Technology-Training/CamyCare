@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Prescription } from '../../../models/pescription';
+import { statuses } from '../../../data/statusData';
 
 interface Reminder {
   order: number;
@@ -15,6 +16,11 @@ type PrescriptionTableProps = {
 const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+  const getHumanReadableStatus = (status: string) => {
+    const matchingStatus = statuses.find((s) => s.value === status);
+    return matchingStatus ? matchingStatus.label : status;
+  };
+
   const getHumanReadablePlages = (plages: string[]) => {
     return plages.map((plage) => {
       switch (plage) {
@@ -28,6 +34,11 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) 
           return plage;
       }
     }).join(' , ');
+  };
+
+  const cancelPrescription = (prescriptionId: string) => {
+    alert(`Prescription with ID: ${prescriptionId} canceled`);
+    // Add logic here to handle cancellation in the backend or state
   };
 
   const toggleReminder = (prescriptionId: string) => {
@@ -63,10 +74,10 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) 
             </th>
             <th className="py-4 px-4 font-medium text-black dark:text-white text-lg">
               Duration (Days)
-            </th>
+            </th>*/}
             <th className="py-4 px-4 font-medium text-black dark:text-white text-lg">
               Plages
-            </th> */}
+            </th> 
             <th className="py-4 px-4 font-medium text-black dark:text-white text-lg">
               Status
             </th>
@@ -94,14 +105,28 @@ const PrescriptionTable: React.FC<PrescriptionTableProps> = ({ prescriptions }) 
                   {getHumanReadablePlages(prescription.plages)}
                 </td>
                 <td className="border-b py-5 px-4 text-lg">
-                  {prescription.status}
-                </td>
-                <td className="border-b py-5 px-4 text-lg">
-                  <button
-                    className="text-blue-500"
-                    onClick={() => toggleReminder(prescription.id as string)}  // Assert that it's a string
+                  <span
+                    className={`inline-block py-1 px-3 rounded-full text-white font-bold ${
+                      prescription.status === 'COMPLETED'
+                        ? 'bg-green-300' 
+                        : prescription.status === 'IN_PROGRESS' ? 'bg-orange-300' : 'bg-red-300'
+                    }`}
                   >
-                    {expandedRow === prescription.id ? '-' : '+'}
+                    {getHumanReadableStatus(prescription.status as string)}
+                  </span>
+                </td>
+                <td className="border-b py-5 px-4 text-lg flex space-x-4">
+                  <button
+                    className="text-blue-500 hover:underline"
+                    onClick={() => toggleReminder(prescription.id as string)}
+                  >
+                    {expandedRow === prescription.id ? 'Hide' : 'View'}
+                  </button>
+                  <button
+                    className="text-red-500 hover:bg-red-100 px-2 py-1 rounded"
+                    onClick={() => cancelPrescription(prescription.id as string)}
+                  >
+                    Cancel
                   </button>
                 </td>
               </tr>

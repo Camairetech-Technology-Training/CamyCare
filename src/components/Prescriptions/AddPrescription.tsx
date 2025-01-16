@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { savePrescription } from '../../services/prescriptionService';
 import { addPatient } from "../../services/patientService";
 import { predefinedDosages } from "../../data/predifinedData";
@@ -10,11 +10,15 @@ import { drugList } from "../../data/drugData";
 import { doseIntervals } from '../../data/doseIntervals';
 import { dosesPerDay } from '../../data/dosesPerDay';
 
-import usePatients from '../../hooks/usePatients';
-import usePrescriptions from '../../hooks/usePrescriptions'; 
+import { usePatientContext } from '../../context/PatientProvider';
+import { usePrescriptionContext } from '../../context/PrescriptionContext'
+import Alerts from '../../pages/UiElements/Alerts';
 
-const AddPrescription = () => {
-
+const AddPrescription: React.FC<{ isModalOpen: boolean; setIsModalOpen: (open: boolean) => void }> = ({
+  setIsModalOpen,
+}) => {
+    const [alert, setAlert] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+    const alertRef = useRef<HTMLDivElement | null>(null);
     const [phoneNumber, setPhoneNumber] = useState('');
     const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -35,9 +39,8 @@ const AddPrescription = () => {
   const [availablePlages, setAvailablePlages] = useState<string[][]>([]);
   const [, setSelectedPlages] = useState<string[]>([]);
 
-  const { patients, addNewPatient } = usePatients();
-   const { addNewPrescription } = usePrescriptions();
-  const [successMessage, setSuccessMessage] = useState('');
+    const { patients, addNewPatient } = usePatientContext();
+  const { addNewPrescription } = usePrescriptionContext();
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -107,7 +110,6 @@ const AddPrescription = () => {
     }));
   };
   
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
   
@@ -136,10 +138,9 @@ const AddPrescription = () => {
     e.preventDefault();
     try {
       const response = await savePrescription(prescription);
-
-      // Add new prescription to the state using the hook
-      addNewPrescription(response); // <-- This will update the prescriptions state in the context
-
+  
+      addNewPrescription(response);
+  
       setPrescription({
         drug: '',
         dosage: '',
@@ -147,24 +148,37 @@ const AddPrescription = () => {
         typeFrequency: 1,
         duration: 1,
         plages: [],
-        patientId: '0c5223f6-cb97-4e8e-ab7f-9521aa527e95',
+        patientId: '',
       });
       setSelectedPlages([]);
       setAvailablePlages([]);
-      setSuccessMessage('Prescription added successfully!');
-
-      setTimeout(() => setSuccessMessage(''), 3000);
+  
+      setAlert({ type: 'success', message: 'Prescription saved successfully!' });
+  
+      setTimeout(() => {
+        setIsModalOpen(false);
+      }, 2000);
     } catch (error) {
       console.error('Error creating prescription:', error);
-      alert('Error adding prescription. Please try again.');
+      setAlert({ type: 'error', message: 'Failed to save prescription. Please try again.' });
     }
-  };
+  };  
+
+  React.useEffect(() => {
+    if (alert && alertRef.current) {
+      alertRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alertRef.current.classList.add('highlight');
+      setTimeout(() => {
+        alertRef.current?.classList.remove('highlight')
+      }, 1500);
+    }
+  }, [alert]);
 
   const handleRegisterNewPatient = async () => {
     if (newPatientName.trim() && phoneNumber.trim()) {
       const phoneRegex = /^\d{9}$/;
       if (!phoneRegex.test(phoneNumber)) {
-        alert('Please enter a valid 9-digit phone number without spaces.');
+        setAlert({ type: 'error', message: 'Please enter a valid 9-digit phone number without spaces.' });
         return;
       }
 
@@ -190,16 +204,20 @@ const AddPrescription = () => {
     }
   };
 
-
   return (
     <div className="p-4">
-      {successMessage && (
-        <div className="mb-4 p-4 bg-green-200 text-green-700 rounded-md">
-          {successMessage}
+      {alert && (
+        <div ref={alertRef} className="mb-4">
+          <Alerts
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert(null)}
+            title=""
+          />
         </div>
       )}
-      {/* Phone Number Input */}
-      <div className="mb-6 relative max-w-md mx-auto">
+
+      <div className="mb-6 mt-6 relative max-w-md mx-auto">
         <label className="block text-lg font-medium text-gray-700">Patient Phone Number</label>
         <input
           type="text"
@@ -313,6 +331,7 @@ const AddPrescription = () => {
                   className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
+                  <option value="">Select Interval Between Doses</option>
                   {doseIntervals.map((interval) => (
                     <option key={interval.value} value={interval.value}>
                       {interval.label}
@@ -342,6 +361,7 @@ const AddPrescription = () => {
                   className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
+                  <option value="">Select Doses per Day</option>
                   {dosesPerDay.map((dose) => (
                     <option key={dose.value} value={dose.value}>
                       {dose.label}
@@ -355,13 +375,12 @@ const AddPrescription = () => {
                   <label className="block text-lg font-medium text-gray-700">Plages:</label>
                   <select
                     onChange={handlePlageSelect}
-                    value={prescription.plages?.join(',') || ''} // Join the array into a string for display
+                    value={prescription.plages?.join(',') || ''}
                     className="mt-2 px-4 py-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="">Select Plages</option>
                     {availablePlages.map((plage, index) => {
-                      // Map the array of plages to human-readable values
                       const humanReadablePlages = plage.map((p) => {
                         switch (p) {
                           case 'MORNING':
